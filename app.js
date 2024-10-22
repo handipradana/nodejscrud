@@ -74,21 +74,18 @@ app.post('/books', upload.single('image'), async (req, res) => {
         ContentType: imageFile.mimetype,
     };
 
-    // const efsDirectory = '/mnt/efs/images';
-    // const efsFilePath = `${efsDirectory}/${Date.now()}-${imageFile.originalname}`; // Unique file path for EFS
-
-
+    const efsDirectory = process.env.EFS_DIR; // Use environment variable for EFS directory
+    const efsFilePath = `${efsDirectory}/${Date.now()}-${imageFile.originalname}`; // Unique file path for EFS
 
     try {
         await s3.send(new PutObjectCommand(params));
         const imageUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/${Date.now()}-${imageFile.originalname}`;
 
         // Save file to EFS (copy the uploaded file to EFS)
-        // if (!fs.existsSync(efsDirectory)) {
-        //     fs.mkdirSync(efsDirectory, { recursive: true }); // Ensure the EFS directory exists
-        // }
-        // fs.copyFileSync(imageFile.path, efsFilePath); // Copy the file to EFS
-
+        if (!fs.existsSync(efsDirectory)) {
+            fs.mkdirSync(efsDirectory, { recursive: true }); // Ensure the EFS directory exists
+        }
+        fs.copyFileSync(imageFile.path, efsFilePath); // Copy the file to EFS
 
         const connection = await mysql.createConnection(dbConfig);
         const [result] = await connection.execute('INSERT INTO books (name, description, price, image_url) VALUES (?, ?, ?, ?)', [name, description, price, imageUrl]);
@@ -166,10 +163,10 @@ app.delete('/books/:id', async (req, res) => {
             Key: `images/${imageKey}`
         }));
 
-        // const efsFilePath = `/mnt/efs/images/${imageKey}`; // Unique file path for EFS
-        // if (fs.existsSync(efsFilePath)) {
-        //     fs.unlinkSync(efsFilePath); // Delete the file from EFS
-        // }
+        const efsFilePath = `${process.env.EFS_DIR}/${imageKey}`; // Unique file path for EFS
+        if (fs.existsSync(efsFilePath)) {
+            fs.unlinkSync(efsFilePath); // Delete the file from EFS
+        }
 
         res.json({ message: 'Book deleted successfully' });
     } catch (error) {
