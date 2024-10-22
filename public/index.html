@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book CRUD Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.12/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-5">
+        <h1 class="text-2xl font-bold mb-5">Book CRUD Application</h1>
+        
+        <button id="addBookButton" class="btn btn-primary mb-5">Add Book</button>
+        
+        <table id="booksTable" class="table w-full">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Image</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="booksBody">
+                <!-- Book rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal for adding and editing a book -->
+    <div id="bookModal" class="modal">
+        <div class="modal-box">
+            <h2 class="font-bold text-xl mb-5">Add/Edit Book</h2>
+            <form id="bookForm">
+                <input type="hidden" id="bookId">
+                <div class="mb-3">
+                    <label for="name" class="block mb-1">Book Name:</label>
+                    <input type="text" id="name" name="name" required class="input input-bordered w-full">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="block mb-1">Description:</label>
+                    <textarea id="description" name="description" required class="textarea textarea-bordered w-full"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="block mb-1">Price:</label>
+                    <input type="number" id="price" name="price" required class="input input-bordered w-full">
+                </div>
+                <div class="mb-3">
+                    <label for="image" class="block mb-1">Image:</label>
+                    <input type="file" id="image" name="image" accept="image/*" required class="file-input file-input-bordered w-full">
+                </div>
+                <div class="modal-action">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn" id="closeModalButton">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            loadBooks();
+
+            // Load books from the server
+            function loadBooks() {
+                $.get('/books', function(books) {
+                    const booksBody = $('#booksBody');
+                    booksBody.empty();
+                    books.forEach(book => {
+                        booksBody.append(`
+                            <tr>
+                                <td>${book.id}</td>
+                                <td>${book.name}</td>
+                                <td>${book.description}</td>
+                                <td>${book.price}</td>
+                                <td><img src="${book.image_url}" alt="${book.name}" class="w-20"></td>
+                                <td>
+                                    <button class="btn btn-warning btn-edit" data-id="${book.id}">Edit</button>
+                                    <button class="btn btn-error btn-delete" data-id="${book.id}">Delete</button>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                    $('#booksTable').DataTable();
+                });
+            }
+
+            // Show the modal for adding a book
+            $('#addBookButton').on('click', function() {
+                $('#bookForm')[0].reset();
+                $('#bookId').val('');
+                $('#bookModal').addClass('modal-open');
+            });
+
+            // Close the modal
+            $('#closeModalButton').on('click', function() {
+                $('#bookModal').removeClass('modal-open');
+            });
+
+            // Add or edit a book
+            $('#bookForm').on('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const bookId = $('#bookId').val();
+                const url = bookId ? `/books/${bookId}` : '/books';
+                const method = bookId ? 'PUT' : 'POST';
+
+                $.ajax({
+                    url: url,
+                    method: method,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        alert(response.message);
+                        loadBooks();
+                        $('#bookModal').removeClass('modal-open');
+                    },
+                    error: function(err) {
+                        console.error('Error:', err);
+                        const message = err.responseJSON ? err.responseJSON.error : 'An error occurred';
+                        alert(message);
+                    }
+                });
+            });
+
+            // Delete a book
+            $(document).on('click', '.btn-delete', function() {
+                const bookId = $(this).data('id');
+                $.ajax({
+                    url: `/books/${bookId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        alert(response.message);
+                        loadBooks();
+                    },
+                    error: function(err) {
+                        console.error('Error:', err);
+                        alert('Failed to delete book');
+                    }
+                });
+            });
+
+            // Edit a book
+            $(document).on('click', '.btn-edit', function() {
+                const bookId = $(this).data('id');
+                $.get(`/books/${bookId}`, function(book) {
+                    $('#bookId').val(book.id);
+                    $('#name').val(book.name);
+                    $('#description').val(book.description);
+                    $('#price').val(book.price);
+                    $('#bookModal').addClass('modal-open');
+                });
+            });
+        });
+    </script>
+    
+    <style>
+        .modal {
+            display: none;
+        }
+        .modal-open {
+            display: block;
+        }
+    </style>
+</body>
+</html>
