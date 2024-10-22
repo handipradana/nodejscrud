@@ -12,3 +12,9 @@ Latihan CRUD nodejs
 `AWS_REGION=yourregion`<br/>
 `S3_BUCKET_NAME=yourbucketname`<br/>
 `EFS_DIR=yourdirectoryefs`<br/>
+
+# Running Database
+node db.js
+
+# Running Application
+npm run start-prod
