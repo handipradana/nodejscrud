@@ -1,3 +1,6 @@
+# Architecture
+
+![Architecture](assets/Latiahn-Page-2.drawio.png)
 # nodejscrud
 Latihan CRUD nodejs
 
